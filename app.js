@@ -7,6 +7,7 @@ const { title } = require("process");
 const app = express();
 const server = http.createServer(app);
 const io = socket(server);
+const { v4: uuidv4 } = require('uuid');
 
 const chess = new Chess();
 let players = {};
@@ -18,6 +19,30 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => {
     res.render("index", {title: "Chess game"});
 })
+
+app.get("/create-game", (req, res) => {
+    const gameId = uuidv4();  // Generate a unique ID
+    players[gameId] = { white: null, black: null, spectators: [] };
+    res.redirect(`/game/${gameId}`);
+});
+
+// Route to handle game joining
+app.get("/join-game", (req, res) => {
+    const gameId = req.query.gameId;  // Get gameId from form input
+    if (!players[gameId]) {
+        return res.send("Invalid Game ID. Please check and try again.");
+    }
+    res.redirect(`/game/${gameId}`);
+});
+
+app.get("/game/:gameId", (req, res) => {
+    const gameId = req.params.gameId;
+    if (!players[gameId]) {
+        return res.send("Invalid Game ID.");
+    }
+
+    res.render("game", { gameId: gameId });
+});
 
 io.on("connection", function (uniqueSocket) {
     console.log("connected");
