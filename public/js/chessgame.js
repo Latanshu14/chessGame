@@ -5,6 +5,7 @@ const boardElement = document.querySelector(".chessboard");
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
+
 const renderBoard = () => {
     const board = chess.board();
     boardElement.innerHTML = "";
@@ -65,8 +66,8 @@ const handleMove = (source, target) => {
         from : `${String.fromCharCode(97+source.col)}${8-source.row}`,
         to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
         promotion: "q",
-    }
-    socket.emit("move", move);
+    }  
+    socket.emit("move", move, gameId);
 }
 
 const getPieceUnicode = (piece) => {

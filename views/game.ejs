@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Game - <%= gameId %></title>
+    <title>Chess Game - gameId</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .chessboard {
@@ -64,7 +64,7 @@
 <body>
     <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
         <div>
-            <h1 class="text-white text-2xl mb-6">Game ID: <%= gameId %></h1>
+            <h1 class="text-white text-2xl mb-6">Game ID: gameId</h1>
             <div class="chessboard w-96 h-96 bg-red-400">
             </div>
         </div>
@@ -74,8 +74,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="/js/chessgame.js"></script>
     <script>
-        const socket = io();
-        socket.emit('joinGame', "<%= gameId %>");
+        const gameId = "<%= gameId %>";
+        socket.emit('joinGame', gameId);
     </script>
 </body>
 </html>

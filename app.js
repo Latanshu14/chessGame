@@ -21,14 +21,13 @@ app.get("/", (req, res) => {
 })
 
 app.get("/create-game", (req, res) => {
-    const gameId = uuidv4();  // Generate a unique ID
-    players[gameId] = { white: null, black: null, spectators: [] };
+    const gameId = uuidv4();
+    players[gameId] = { white: null, black: null, chess: new Chess(), spectators: [] };
     res.redirect(`/game/${gameId}`);
 });
 
-// Route to handle game joining
 app.get("/join-game", (req, res) => {
-    const gameId = req.query.gameId;  // Get gameId from form input
+    const gameId = req.query.gameId;
     if (!players[gameId]) {
         return res.send("Invalid Game ID. Please check and try again.");
     }
@@ -47,48 +46,70 @@ app.get("/game/:gameId", (req, res) => {
 io.on("connection", function (uniqueSocket) {
     console.log("connected");
 
-    if (!players.white) {
-        players.white = uniqueSocket.id;
-        uniqueSocket.emit("playerRole", "w");
-    }
-    else if (!players.black) {
-        players.black = uniqueSocket.id;
-        uniqueSocket.emit("playerRole", "b");
-    }
-    else {
-        uniqueSocket.emit("spectatorRole");
-    }
+    uniqueSocket.on('joinGame', function (gameId) {
+        uniqueSocket.join(gameId);
+        if (!players[gameId]) {
+            players[gameId] = {
+                white: null,
+                black: null,
+                chess: new Chess(),
+                spectators: []
+            };
+        }
+        const chess = players[gameId].chess;
+        if (!players[gameId].white) {
+            console.log("white joined");
+            players[gameId].white = uniqueSocket.id;
+            console.log(players[gameId].white);
+            uniqueSocket.emit("playerRole", "w");
+        } else if (!players[gameId].black) {
+            console.log("black joined");
+            players[gameId].black = uniqueSocket.id;
+            uniqueSocket.emit("playerRole", "b");
+        } else {
+            players[gameId].spectators.push(uniqueSocket.id);
+            uniqueSocket.emit("spectatorRole");
+            uniqueSocket.emit("boardState", chess.fen());
+        }
+    });
 
     uniqueSocket.on("disconnect", function () {
-        if (uniqueSocket.id === players.white) {
-            delete players.white;
+        if (uniqueSocket.id === players[gameId].white) {
+            delete players[gameId].white;
         }
-        else if (uniqueSocket.id === players.black) {
-            delete players.black;
+        else if (uniqueSocket.id === players[gameId].black) {
+            delete players[gameId].black;
         }
-    })
+    });
 
-    uniqueSocket.on("move", (move)=>{
+    uniqueSocket.on("move", (move, gameId) => {
         try {
-            if (chess.turn() === "w" && uniqueSocket.id !== players.white) return;
-            if (chess.turn() === "b" && uniqueSocket.id !== players.black) return;
-
-            const result = chess.move(move);
-            if (result) {
-                currentPlayer = chess.turn();
-                io.emit("move", move);
-                io.emit("boardState", chess.fen());
+            if (!players[gameId]) {
+                console.log("No game found for this gameId:", gameId);
+                return;
             }
-            else {
-                console.log("Invalid Move: ", move);
+            const chess = players[gameId].chess;
+            if (!chess) {
+                console.log("No chess instance found for this gameId:", gameId);
+                return;
+            }
+            if (chess.turn() === "w" && uniqueSocket.id !== players[gameId].white) return;
+            if (chess.turn() === "b" && uniqueSocket.id !== players[gameId].black) return;
+            const result = chess.move(move);
+            console.log("Move result:", result);
+            if (result) {
+                io.in(gameId).emit("move", move);  
+                io.in(gameId).emit("boardState", chess.fen());
+            } else {
                 uniqueSocket.emit("invalidMove", move);
             }
         } catch (error) {
             console.log(error);
             uniqueSocket.emit("Invalid Move: ", move);
         }
-    })
-})
+    });
+});
+
 server.listen(3000, function () {
     console.log("listening on port 3000")
 });
