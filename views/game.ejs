@@ -3,69 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Game - gameId</title>
+    <title>Chess Game - <%= gameId %></title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .chessboard {
-            display: grid;
-            grid-template-columns: repeat(8, minmax(0, 1fr));
-            grid-template-rows: repeat(8, minmax(0, 1fr));
-            width: 400px;
-            height: 400px;
-            transform: rotate(0deg);
-        }
-
-        .piece.white {
-            color: white;
-            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 1));
-        }
-
-        .piece.black {
-            color: black;
-        }
-
-        .flipped {
-            transform: rotate(180deg);
-        }
-
-        .square {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .square.light {
-            background-color: #f0d9b5;
-        }
-
-        .square.dark {
-            background-color: #b58863;
-        }
-
-        .piece {
-            font-size: 36px;
-            cursor: pointer;
-        }
-
-        .piece.draggable {
-            cursor: grab;
-        }
-
-        .dragging {
-            opacity: 0.5;
-        }
-
-        /* Rotate pieces for black player */
-        .flipped .piece {
-            transform: rotate(180deg);
-        }
-    </style>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
-        <div>
-            <h1 class="text-white text-2xl mb-6">Game ID: gameId</h1>
-            <div class="chessboard w-96 h-96 bg-red-400">
+        <div class="text-center"> <!-- Center all content -->
+            <h1 class="text-white text-2xl mb-6">
+                Game ID: <span id="gameIdText"><%= gameId %></span>
+            </h1>
+
+            <!-- Chessboard -->
+            <div class="chessboard w-96 h-96 bg-red-400 mx-auto mb-6"></div>
+
+            <!-- Buttons Container -->
+            <div class="flex justify-center space-x-4 mb-6">
+                <button id="play-button" class="btn">Play</button>
+                <button id="invite-button" class="btn">Invite a Friend</button>
+                <button id="spectator-button" class="btn">Join as Spectator</button>
+                <button id="challenge-button" class="btn">Challenge Him</button>
+            </div>
+
+            <!-- Challenge Popup (Initially hidden) -->
+            <div id="challenge-popup">
+                <p>Player challenged you! Do you accept?</p>
+                <button id="accept-challenge" class="btn">Accept</button>
+                <button id="reject-challenge" class="btn">Reject</button>
             </div>
         </div>
     </div>

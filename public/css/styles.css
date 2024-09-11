@@ -1,0 +1,149 @@
+.chessboard {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    width: 400px;
+    height: 400px;
+    transform: rotate(0deg);
+}
+
+.piece.white {
+    color: white;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 1));
+}
+
+.piece.black {
+    color: black;
+}
+
+.flipped {
+    transform: rotate(180deg);
+}
+
+.square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.square.light {
+    background-color: #f0d9b5;
+}
+
+.square.dark {
+    background-color: #b58863;
+}
+
+.piece {
+    font-size: 36px;
+    cursor: pointer;
+}
+
+.piece.draggable {
+    cursor: grab;
+}
+
+.dragging {
+    opacity: 0.5;
+}
+
+/* Rotate pieces for black player */
+.flipped .piece {
+    transform: rotate(180deg);
+}
+
+/* General button styles */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;  /* Adjust button padding */
+    font-size: 1rem;       /* Font size for the button text */
+    font-weight: bold;     /* Bold text */
+    border-radius: 0.375rem; /* Rounded corners */
+    transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out; /* Smooth transition for hover effects */
+    cursor: pointer;       /* Pointer cursor on hover */
+}
+
+/* Play button */
+#play-button {
+    background-color: #1e40af;  /* Blue background */
+    color: white;               /* White text */
+}
+
+#play-button:hover {
+    background-color: #1d4ed8;  /* Slightly darker blue on hover */
+}
+
+/* Invite a Friend button */
+#invite-button {
+    background-color: #2563eb;  /* Lighter blue background */
+    color: white;
+}
+
+#invite-button:hover {
+    background-color: #3b82f6;  /* Darker blue on hover */
+}
+
+/* Join as Spectator button */
+#spectator-button {
+    background-color: #10b981;  /* Green background */
+    color: white;
+}
+
+#spectator-button:hover {
+    background-color: #059669;  /* Darker green on hover */
+}
+
+/* Challenge Him button */
+#challenge-button {
+    background-color: #f59e0b;  /* Yellow background */
+    color: white;
+}
+
+#challenge-button:hover {
+    background-color: #d97706;  /* Darker yellow on hover */
+}
+
+/* Accept Challenge button */
+#accept-challenge {
+    background-color: #16a34a;  /* Dark green background */
+    color: white;
+}
+
+#accept-challenge:hover {
+    background-color: #15803d;  /* Darker green on hover */
+}
+
+/* Reject Challenge button */
+#reject-challenge {
+    background-color: #ef4444;  /* Red background */
+    color: white;
+}
+
+#reject-challenge:hover {
+    background-color: #dc2626;  /* Darker red on hover */
+}
+
+/* Disable buttons once the game starts */
+button:disabled {
+    background-color: #6b7280;  /* Gray background when disabled */
+    cursor: not-allowed;        /* Show not-allowed cursor when button is disabled */
+    opacity: 0.6;               /* Make the button semi-transparent */
+}
+
+/* Popup styling for challenges */
+#challenge-popup {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #111827; /* Dark background for popup */
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* Box shadow for effect */
+}
+
+/* Button inside popup */
+#challenge-popup button {
+    margin-right: 0.5rem;
+}
