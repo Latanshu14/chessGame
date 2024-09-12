@@ -2,7 +2,6 @@ const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
 
-// UI elements for buttons
 const playButton = document.querySelector("#play-button");
 const inviteButton = document.querySelector("#invite-button");
 const challengeButton = document.querySelector("#challenge-button");
@@ -14,9 +13,8 @@ const rejectButton = document.querySelector("#reject-challenge");
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
-let gameStarted = false;  // Add a flag to track if the game has started
+let gameStarted = false;
 
-// Render the chessboard
 const renderBoard = () => {
     const board = chess.board();
     boardElement.innerHTML = "";
@@ -70,7 +68,6 @@ const renderBoard = () => {
     }
 };
 
-// Handle move and emit to the server
 const handleMove = (source, target) => {
     const move = {
         from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
@@ -80,7 +77,6 @@ const handleMove = (source, target) => {
     socket.emit("move", move, gameId);
 };
 
-// Get Unicode representation of chess pieces
 const getPieceUnicode = (piece) => {
     const unicodePieces = {
         'p': '\u2659', 'r': '\u2656', 'n': '\u2658', 'b': '\u2657',
@@ -90,21 +86,17 @@ const getPieceUnicode = (piece) => {
     return unicodePieces[piece.type] || "";
 };
 
-// UI handling based on roles and game state
 const updateUI = () => {
     hideAllButtons();
     if (playerRole === "w" && !gameStarted) {
-        // Show play and invite buttons for the white player
         playButton.style.display = "block";
         inviteButton.style.display = "block";
     } else if (!gameStarted && !playerRole) {
-        // Show spectator and challenge buttons for other users
         spectatorButton.style.display = "block";
         challengeButton.style.display = "block";
     }
 };
 
-// Hide all buttons initially
 const hideAllButtons = () => {
     playButton.style.display = "none";
     inviteButton.style.display = "none";
@@ -113,10 +105,10 @@ const hideAllButtons = () => {
     challengePopup.style.display = "none";
 };
 
-// Copy the game link to clipboard
 inviteButton.addEventListener("click", () => {
     const gameIdText = document.getElementById('gameIdText').textContent;
     console.log('Game ID to copy:', gameIdText);
+    console.log(gameIdText);
     navigator.clipboard.writeText(gameIdText).then(() => {
         alert('Game ID copied to clipboard: ' + gameIdText);
     }).catch(err => {
@@ -124,25 +116,23 @@ inviteButton.addEventListener("click", () => {
     });
 });
 
-// Start the game for the white player
 playButton.addEventListener("click", () => {
     socket.emit("startGame", gameId);
 });
 
-// Join as a spectator
 spectatorButton.addEventListener("click", () => {
-    socket.emit("joinAsSpectator", gameId);
+    const playerName = document.getElementById('playerName').textContent;
+    console.log(playerName);
+    socket.emit("joinAsSpectator", gameId, playerName);
     playerRole = "spectator";
     updateUI();
 });
 
-// Challenge the white player
 challengeButton.addEventListener("click", () => {
+    const playerName = document.getElementById('playerName').textContent;
     console.log(socket.id, " is challenging to white");
-    socket.emit("challengeWhitePlayer", gameId);
+    socket.emit("challengeWhitePlayer", gameId, playerName);
 });
-
-// White player accepts or rejects the challenge
 acceptButton.addEventListener("click", () => {
     socket.emit("acceptChallenge", gameId, challengerId);
     hideChallengePopup();
@@ -151,8 +141,6 @@ rejectButton.addEventListener("click", () => {
     socket.emit("rejectChallenge", socket.id);
     hideChallengePopup();
 });
-
-// Show the challenge popup for white player
 const showChallengePopup = () => {
     challengePopup.style.display = "block";
 };
@@ -161,7 +149,6 @@ const hideChallengePopup = () => {
     challengePopup.style.display = "none";
 };
 
-// Handle socket events
 socket.on("playerRole", function (role) {
     playerRole = role;
     updateUI();
@@ -184,25 +171,39 @@ socket.on("gameStarted", function () {
     renderBoard();
 });
 
-socket.on("challengeRequest", function (challengerId) {
+socket.on("challengeRequest", function (challengerId, challengerName) {
     console.log("challenge recieved from ", challengerId, " to ", socket.id);
     const accept = confirm("A player has challenged you. Do you accept?");
-    
     if (accept) {
-        socket.emit("acceptChallenge", gameId, challengerId);
+        socket.emit("acceptChallenge", gameId, challengerId, challengerName);
         console.log("Challenge accepted.");
     } else {
         socket.emit("rejectChallenge", challengerId);
         console.log("Challenge rejected.");
     }
 });
-
+socket.on("challengeRejected", function () {
+    if (playerRole === "b") {
+        renderBoard();
+    }
+});
 socket.on("challengeAccepted", function () {
     if (playerRole === "b") {
-        gameStarted = true;
         hideAllButtons();
         renderBoard();
     }
 });
+socket.on('playerNames', (whiteName, blackName) => {
+    document.getElementById('whitePlayerName').textContent = whiteName ? whiteName : 'Waiting for player...';
+    document.getElementById('blackPlayerName').textContent = blackName ? blackName : 'Waiting for player...';
+});
 
+socket.on('spectatorJoined', (spectatorNames) => {
+    document.getElementById('spectatorsList').innerHTML = '';
+    spectatorNames.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        document.getElementById('spectatorsList').appendChild(li);
+    });
+});
 renderBoard();

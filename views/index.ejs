@@ -11,17 +11,38 @@
         <div>
             <h1 class="text-white text-2xl mb-6">Welcome to Chess Game</h1>
             
+            <!-- Name Input -->
+            <input type="text" id="playerName" placeholder="Enter Your Name" required class="input py-2 px-4 mb-4">
+            
             <!-- Create Game Button -->
-            <form action="/create-game" method="GET">
+            <form action="/create-game" method="GET" onsubmit="return validateForm()">
+                <input type="hidden" name="playerName" id="createGameName">
                 <button type="submit" class="btn bg-blue-500 text-white py-2 px-4">Create Game</button>
             </form>
 
             <!-- Join Game Form -->
-            <form action="/join-game" method="GET" class="mt-4">
+            <form action="/join-game" method="GET" class="mt-4" onsubmit="return validateForm()">
                 <input type="text" name="gameId" placeholder="Enter Game ID" required class="input py-2 px-4 mr-2">
+                <input type="hidden" name="playerName" id="joinGameName">
                 <button type="submit" class="btn bg-green-500 text-white py-2 px-4">Join Game</button>
             </form>
         </div>
     </div>
+
+    <script>
+        function validateForm() {
+            const nameInput = document.getElementById('playerName').value.trim();
+            if (!nameInput) {
+                alert('Please enter your name before creating or joining a game.');
+                return false;
+            }
+
+            // Set the name in hidden inputs
+            document.getElementById('createGameName').value = nameInput;
+            document.getElementById('joinGameName').value = nameInput;
+
+            return true;
+        }
+    </script>
 </body>
 </html>

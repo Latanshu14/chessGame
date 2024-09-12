@@ -14,6 +14,14 @@
                 Game ID: <span id="gameIdText"><%= gameId %></span>
             </h1>
 
+            <h1 class="text-white text-2xl mb-6">
+                Chess Game: White - <span id="whitePlayerName"></span>, Black - <span id="blackPlayerName"></span>
+            </h1>
+
+            <h1 class="text-white text-2xl mb-6">
+                you - <span id="playerName"><%= playerName %></span>
+            </h1>
+
             <!-- Chessboard -->
             <div class="chessboard w-96 h-96 bg-red-400 mx-auto mb-6"></div>
 
@@ -23,6 +31,12 @@
                 <button id="invite-button" class="btn">Invite a Friend</button>
                 <button id="spectator-button" class="btn">Join as Spectator</button>
                 <button id="challenge-button" class="btn">Challenge Him</button>
+            </div>
+
+            <!-- Spectators List -->
+            <div class="text-white">
+                <h3>Spectators:</h3>
+                <ul id="spectatorsList"></ul>
             </div>
 
             <!-- Challenge Popup (Initially hidden) -->
@@ -39,7 +53,8 @@
     <script src="/js/chessgame.js"></script>
     <script>
         const gameId = "<%= gameId %>";
-        socket.emit('joinGame', gameId);
+        const playerName = "<%= playerName %>"; 
+        socket.emit('joinGame', gameId, playerName);
     </script>
 </body>
 </html>

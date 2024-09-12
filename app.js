@@ -14,71 +14,78 @@ let players = {};
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 
-// Home route
 app.get("/", (req, res) => {
     res.render("index", { title: "Chess game" });
 });
-
-// Route to create a game
 app.get("/create-game", (req, res) => {
     const gameId = uuidv4();
-    players[gameId] = { white: null, black: null, chess: new Chess(), spectators: [] };
-    res.redirect(`/game/${gameId}`);
+    const playerName = req.query.playerName;
+    players[gameId] = { 
+        white: { id: null, name: playerName }, 
+        black: { id: null, name: null }, 
+        chess: new Chess(), 
+        spectators: [] 
+    };
+    res.redirect(`/game/${gameId}?playerName=${playerName}`);
 });
-
-// Route to join a game using gameId
 app.get("/join-game", (req, res) => {
     const gameId = req.query.gameId;
+    const playerName = req.query.playerName;
     if (!players[gameId]) {
         return res.send("Invalid Game ID. Please check and try again.");
     }
-    res.redirect(`/game/${gameId}`);
+    res.redirect(`/game/${gameId}?playerName=${playerName}`);
 });
-
-// Render the game page for the gameId
 app.get("/game/:gameId", (req, res) => {
     const gameId = req.params.gameId;
+    const playerName = req.query.playerName;
     if (!players[gameId]) {
         return res.send("Invalid Game ID.");
     }
-    res.render("game", { gameId: gameId });
+    res.render("game", { gameId: gameId , playerName: playerName});
 });
 
 io.on("connection", (uniqueSocket) => {
-    console.log("user joined: ", uniqueSocket.id);
-    uniqueSocket.on('joinGame', (gameId) => {
+    
+    uniqueSocket.on('joinGame', (gameId, playerName) => {
         uniqueSocket.join(gameId);
-
+        console.log("user joined: ", uniqueSocket.id, playerName);
         if (!players[gameId]) {
-            players[gameId] = { white: null, black: null, chess: new Chess(), spectators: [] };
+            players[gameId] = { white: { id: null, name: playerName }, black: { id: null, name: null }, chess: new Chess(), spectators: [] };
         }
         const chess = players[gameId].chess;
-        if (!players[gameId].white) {
-            console.log("White joined: ", uniqueSocket.id);
-            players[gameId].white = uniqueSocket.id;
+        if (!players[gameId].white.id) {
+            console.log("White joined: ", uniqueSocket.id, playerName);
+            players[gameId].white.id = uniqueSocket.id;
+            players[gameId].white.name = playerName;
             uniqueSocket.emit("playerRole", "w");
-        } else if (!players[gameId].black) {
-            uniqueSocket.emit("playerRole", null); // Waiting for role assignment (challenge or spectator)
+        } else if (!players[gameId].black.id) {
+            uniqueSocket.emit("playerRole", null);
         } else {
-            console.log("spec joined:", uniqueSocket.id);
-            players[gameId].spectators.push(uniqueSocket.id);
+            console.log("Spectator joined: ", uniqueSocket.id, playerName);
+            players[gameId].spectators.push({ id: uniqueSocket.id, name: playerName });
             uniqueSocket.emit("playerRole", "spectator");
             uniqueSocket.emit("boardState", chess.fen());
+            io.in(gameId).emit("spectatorJoined", players[gameId].spectators.map(s => s.name));
         }
+        io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
     });
 
-    uniqueSocket.on("challengeWhitePlayer", (gameId) => {
-        if (players[gameId].white) {
+    uniqueSocket.on("challengeWhitePlayer", (gameId, playerName) => {
+        if (players[gameId].white.id) {
             console.log("challenge recievec from ", uniqueSocket.id);
-            io.to(players[gameId].white).emit("challengeRequest", uniqueSocket.id);
+            io.to(players[gameId].white.id).emit("challengeRequest", uniqueSocket.id, playerName);
         }
     });
 
-    uniqueSocket.on("acceptChallenge", (gameId, challengerId) => {
-        if (players[gameId].white && players[gameId].black === null) {
-            console.log("black joined: ", challengerId);
-            players[gameId].black = challengerId;
+    uniqueSocket.on("acceptChallenge", (gameId, challengerId, challengerName) => {
+        if (players[gameId].white.id && players[gameId].black.id === null) {
+            console.log("Black joined: ", challengerId, challengerName);
+            players[gameId].black.id = challengerId;
+            players[gameId].black.name = challengerName;
             io.to(challengerId).emit("playerRole", "b");
+            io.to(challengerId).emit("challengeAccepted");
+            io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
         }
     });
 
@@ -86,13 +93,16 @@ io.on("connection", (uniqueSocket) => {
         io.to(challengerId).emit("challengeRejected");
     });
 
-    uniqueSocket.on("joinAsSpectator", (gameId) => {
-        players[gameId].spectators.push(uniqueSocket.id);
+    uniqueSocket.on("joinAsSpectator", (gameId, playerName) => {
+        console.log("Spectator joined: ", uniqueSocket.id, playerName);
+        players[gameId].spectators.push({ id: uniqueSocket.id, name: playerName });
         uniqueSocket.emit("playerRole", "spectator");
+        uniqueSocket.emit("boardState", chess.fen());
+        io.in(gameId).emit("spectatorJoined", players[gameId].spectators.map(s => s.name));
     });
 
     uniqueSocket.on("startGame", (gameId) => {
-        if (players[gameId].white && players[gameId].black) {
+        if (players[gameId].white.id && players[gameId].black.id) {
             io.in(gameId).emit("gameStarted");
         }
     });
@@ -100,8 +110,8 @@ io.on("connection", (uniqueSocket) => {
     uniqueSocket.on("move", (move, gameId) => {
         try {
             const chess = players[gameId].chess;
-            if (chess.turn() === "w" && uniqueSocket.id !== players[gameId].white) return;
-            if (chess.turn() === "b" && uniqueSocket.id !== players[gameId].black) return;
+            if (chess.turn() === "w" && uniqueSocket.id !== players[gameId].white.id) return;
+            if (chess.turn() === "b" && uniqueSocket.id !== players[gameId].black.id) return;
 
             const result = chess.move(move);
             if (result) {
