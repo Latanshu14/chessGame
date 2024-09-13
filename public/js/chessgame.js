@@ -14,6 +14,46 @@ let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
 let gameStarted = false;
+let currentChallengerId = null;
+let currentChallengerName = null;
+
+inviteButton.addEventListener("click", () => {
+    const gameIdText = document.getElementById('gameIdText').textContent;
+    navigator.clipboard.writeText(gameIdText).then(() => {
+        showNotification("Link is copied!");
+    }).catch(err => {
+        console.error('Failed to copy Game ID', err);
+    });
+});
+playButton.addEventListener("click", () => {
+    socket.emit("startGame", gameId);
+});
+spectatorButton.addEventListener("click", () => {
+    const playerName = document.getElementById('playerName').textContent;
+    console.log(playerName);
+    playerRole = "spectator";
+    socket.emit("joinAsSpectator", gameId, playerName);
+    updateUI();
+});
+challengeButton.addEventListener("click", () => {
+    const playerName = document.getElementById('playerName').textContent;
+    console.log(socket.id, " is challenging to white in ", gameId);
+    socket.emit("challengeWhitePlayer", gameId, playerName);
+});
+acceptButton.addEventListener("click", () => {
+    if (currentChallengerId && currentChallengerName) {
+        socket.emit("acceptChallenge", gameId, currentChallengerId, currentChallengerName);
+        console.log("Challenge accepted.");
+    }
+    hideChallengePopup();
+});
+rejectButton.addEventListener("click", () => {
+    if (currentChallengerId) {
+        socket.emit("rejectChallenge", currentChallengerId);
+        console.log("Challenge rejected.");
+    }
+    hideChallengePopup();
+});
 
 const renderBoard = () => {
     const board = chess.board();
@@ -67,16 +107,17 @@ const renderBoard = () => {
         boardElement.classList.remove("flipped");
     }
 };
-
 const handleMove = (source, target) => {
     const move = {
         from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
         to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
         promotion: "q",
+        color: chess.turn() === 'w' ? 'w' : 'b'
     };
-    socket.emit("move", move, gameId);
+    if (gameStarted) {
+        socket.emit("move", move, gameId);
+    }
 };
-
 const getPieceUnicode = (piece) => {
     const unicodePieces = {
         'p': '\u2659', 'r': '\u2656', 'n': '\u2658', 'b': '\u2657',
@@ -85,7 +126,6 @@ const getPieceUnicode = (piece) => {
     };
     return unicodePieces[piece.type] || "";
 };
-
 const updateUI = () => {
     hideAllButtons();
     if (playerRole === "w" && !gameStarted) {
@@ -94,9 +134,10 @@ const updateUI = () => {
     } else if (!gameStarted && !playerRole) {
         spectatorButton.style.display = "block";
         challengeButton.style.display = "block";
+    } else if (gameStarted && !playerRole) {
+        spectatorButton.style.display = "block";
     }
 };
-
 const hideAllButtons = () => {
     playButton.style.display = "none";
     inviteButton.style.display = "none";
@@ -104,83 +145,81 @@ const hideAllButtons = () => {
     spectatorButton.style.display = "none";
     challengePopup.style.display = "none";
 };
-
-inviteButton.addEventListener("click", () => {
-    const gameIdText = document.getElementById('gameIdText').textContent;
-    console.log('Game ID to copy:', gameIdText);
-    console.log(gameIdText);
-    navigator.clipboard.writeText(gameIdText).then(() => {
-        alert('Game ID copied to clipboard: ' + gameIdText);
-    }).catch(err => {
-        alert('Failed to copy Game ID');
-    });
-});
-
-playButton.addEventListener("click", () => {
-    socket.emit("startGame", gameId);
-});
-
-spectatorButton.addEventListener("click", () => {
-    const playerName = document.getElementById('playerName').textContent;
-    console.log(playerName);
-    socket.emit("joinAsSpectator", gameId, playerName);
-    playerRole = "spectator";
-    updateUI();
-});
-
-challengeButton.addEventListener("click", () => {
-    const playerName = document.getElementById('playerName').textContent;
-    console.log(socket.id, " is challenging to white");
-    socket.emit("challengeWhitePlayer", gameId, playerName);
-});
-acceptButton.addEventListener("click", () => {
-    socket.emit("acceptChallenge", gameId, challengerId);
-    hideChallengePopup();
-});
-rejectButton.addEventListener("click", () => {
-    socket.emit("rejectChallenge", socket.id);
-    hideChallengePopup();
-});
-const showChallengePopup = () => {
-    challengePopup.style.display = "block";
-};
-
+const showNotification = (message) => {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.style.display = 'block';
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 1000);
+}
+const showNoBlackPlayerPopup = () => {
+    const popup = document.getElementById('noBlackPlayerPopup');
+    popup.style.display = 'block';
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 1000);
+}
+const showChallengePopup = (challengerName) => {
+    const popup = document.getElementById("challenge-popup");
+    popup.style.display = "block";
+    const challengeMessage = document.getElementById("challengeMessage");
+    challengeMessage.textContent = `${challengerName} has challenged you! Do you accept?`;
+}
 const hideChallengePopup = () => {
-    challengePopup.style.display = "none";
-};
-
+    const popup = document.getElementById("challenge-popup");
+    popup.style.display = "none"; 
+}
+const addMessageToBox = (message) => {
+    if (playerRole !== null) {
+        const messageBox = document.getElementById('messageBox');
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.textContent = message;
+        messageBox.appendChild(messageElement);
+        messageBox.scrollTop = messageBox.scrollHeight;
+    }
+}
+const updateMoveHistory = (move) => {
+    if (playerRole !== null) {
+        const moveHistoryList = document.getElementById('moveHistoryList');
+        const li = document.createElement('li');
+        li.textContent = `${move.color === 'w' ? 'White' : 'Black'}: ${move.from} to ${move.to}`;
+        moveHistoryList.appendChild(li);
+        document.getElementById('moveHistoryBox').scrollTop = moveHistoryList.scrollHeight;
+    }
+}
 socket.on("playerRole", function (role) {
     playerRole = role;
+    console.log(playerRole, gameStarted);
     updateUI();
     renderBoard();
 });
-
 socket.on("boardState", function (fen) {
-    chess.load(fen);
-    renderBoard();
+    if (playerRole !== null) {
+        chess.load(fen);
+        renderBoard();
+    }
 });
-
 socket.on("move", function (move) {
-    chess.move(move);
-    renderBoard();
+    if (gameStarted && playerRole !== null) {
+        updateMoveHistory(move);
+        chess.move(move);
+        renderBoard();
+    }
 });
-
 socket.on("gameStarted", function () {
     gameStarted = true;
-    hideAllButtons();
-    renderBoard();
+    updateUI();
+    if (playerRole !== null) {
+        renderBoard();
+    }
 });
-
 socket.on("challengeRequest", function (challengerId, challengerName) {
     console.log("challenge recieved from ", challengerId, " to ", socket.id);
-    const accept = confirm("A player has challenged you. Do you accept?");
-    if (accept) {
-        socket.emit("acceptChallenge", gameId, challengerId, challengerName);
-        console.log("Challenge accepted.");
-    } else {
-        socket.emit("rejectChallenge", challengerId);
-        console.log("Challenge rejected.");
-    }
+    currentChallengerId = challengerId;
+    currentChallengerName = challengerName;
+    showChallengePopup(challengerName);
 });
 socket.on("challengeRejected", function () {
     if (playerRole === "b") {
@@ -193,17 +232,28 @@ socket.on("challengeAccepted", function () {
         renderBoard();
     }
 });
+socket.on('noBlackPlayer', () => {
+    showNoBlackPlayerPopup();
+});
 socket.on('playerNames', (whiteName, blackName) => {
     document.getElementById('whitePlayerName').textContent = whiteName ? whiteName : 'Waiting for player...';
     document.getElementById('blackPlayerName').textContent = blackName ? blackName : 'Waiting for player...';
 });
 
-socket.on('spectatorJoined', (spectatorNames) => {
-    document.getElementById('spectatorsList').innerHTML = '';
-    spectatorNames.forEach(name => {
-        const li = document.createElement('li');
-        li.textContent = name;
-        document.getElementById('spectatorsList').appendChild(li);
-    });
+socket.on('playerJoined', (message) => {
+    addMessageToBox(message);
 });
-renderBoard();
+
+socket.on('spectatorJoined', (message) => {
+    addMessageToBox(message);
+});
+socket.on('moveHistory', (history) => {
+    if (playerRole !== null) {
+        history.forEach(move => {
+            updateMoveHistory(move);
+            chess.move(move);
+        });
+        renderBoard();
+    }
+});
+// renderBoard();

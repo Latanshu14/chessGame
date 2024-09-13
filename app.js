@@ -21,6 +21,7 @@ app.get("/create-game", (req, res) => {
     const gameId = uuidv4();
     const playerName = req.query.playerName;
     players[gameId] = { 
+        moveHistory: [],
         white: { id: null, name: playerName }, 
         black: { id: null, name: null }, 
         chess: new Chess(), 
@@ -51,7 +52,7 @@ io.on("connection", (uniqueSocket) => {
         uniqueSocket.join(gameId);
         console.log("user joined: ", uniqueSocket.id, playerName);
         if (!players[gameId]) {
-            players[gameId] = { white: { id: null, name: playerName }, black: { id: null, name: null }, chess: new Chess(), spectators: [] };
+            players[gameId] = { moveHistory: [], white: { id: null, name: playerName }, black: { id: null, name: null }, chess: new Chess(), spectators: [] };
         }
         const chess = players[gameId].chess;
         if (!players[gameId].white.id) {
@@ -59,6 +60,7 @@ io.on("connection", (uniqueSocket) => {
             players[gameId].white.id = uniqueSocket.id;
             players[gameId].white.name = playerName;
             uniqueSocket.emit("playerRole", "w");
+            io.to(gameId).emit('playerJoined', `${playerName} has joined as white!`);
         } else if (!players[gameId].black.id) {
             uniqueSocket.emit("playerRole", null);
         } else {
@@ -66,9 +68,11 @@ io.on("connection", (uniqueSocket) => {
             players[gameId].spectators.push({ id: uniqueSocket.id, name: playerName });
             uniqueSocket.emit("playerRole", "spectator");
             uniqueSocket.emit("boardState", chess.fen());
-            io.in(gameId).emit("spectatorJoined", players[gameId].spectators.map(s => s.name));
+            uniqueSocket.emit("gameStarted");
+            io.to(gameId).emit('spectatorJoined', `${playerName} has joined as a spectator`);
         }
         io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
+        uniqueSocket.emit('moveHistory', players[gameId].moveHistory);
     });
 
     uniqueSocket.on("challengeWhitePlayer", (gameId, playerName) => {
@@ -86,6 +90,7 @@ io.on("connection", (uniqueSocket) => {
             io.to(challengerId).emit("playerRole", "b");
             io.to(challengerId).emit("challengeAccepted");
             io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
+            io.to(gameId).emit('playerJoined', `${challengerName} has joined as black!`);
         }
     });
 
@@ -94,16 +99,20 @@ io.on("connection", (uniqueSocket) => {
     });
 
     uniqueSocket.on("joinAsSpectator", (gameId, playerName) => {
+        const chess = players[gameId].chess;
         console.log("Spectator joined: ", uniqueSocket.id, playerName);
         players[gameId].spectators.push({ id: uniqueSocket.id, name: playerName });
         uniqueSocket.emit("playerRole", "spectator");
         uniqueSocket.emit("boardState", chess.fen());
-        io.in(gameId).emit("spectatorJoined", players[gameId].spectators.map(s => s.name));
+        uniqueSocket.emit('moveHistory', players[gameId].moveHistory);
+        io.to(gameId).emit('spectatorJoined', `${playerName} has joined as a spectator`);
     });
 
     uniqueSocket.on("startGame", (gameId) => {
         if (players[gameId].white.id && players[gameId].black.id) {
             io.in(gameId).emit("gameStarted");
+        } else {
+            uniqueSocket.emit("noBlackPlayer");
         }
     });
 
@@ -115,8 +124,10 @@ io.on("connection", (uniqueSocket) => {
 
             const result = chess.move(move);
             if (result) {
+                players[gameId].moveHistory.push(move);
                 io.in(gameId).emit("move", move);
                 io.in(gameId).emit("boardState", chess.fen());
+                
             } else {
                 uniqueSocket.emit("invalidMove", move); 
             }

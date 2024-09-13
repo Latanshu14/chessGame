@@ -9,42 +9,49 @@
 </head>
 <body>
     <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
-        <div class="text-center"> <!-- Center all content -->
-            <h1 class="text-white text-2xl mb-6">
-                Game ID: <span id="gameIdText"><%= gameId %></span>
-            </h1>
+        <!-- Moves history section on the left -->
+        <div id="moveHistoryBox" class="move-history-box border rounded-lg p-4 bg-gray-800 text-white overflow-y-auto mr-10">
+            <h3>Move History</h3>
+            <ul id="moveHistoryList">
+                <!-- Moves will be appended here -->
+            </ul>
+        </div>
 
-            <h1 class="text-white text-2xl mb-6">
-                Chess Game: White - <span id="whitePlayerName"></span>, Black - <span id="blackPlayerName"></span>
-            </h1>
+        <div class="flex justify-center space-x-10">
+            <div class="text-center">
+                <h1 class="text-white text-2xl mb-6">
+                    Game ID: <span id="gameIdText"><%= gameId %></span>
+                </h1>
+                <h1 class="text-white text-2xl mb-6">
+                    Chess Game: White - <span id="whitePlayerName"></span>, Black - <span id="blackPlayerName"></span>
+                </h1>
+                <h1 class="text-white text-2xl mb-6">
+                    You - <span id="playerName"><%= playerName %></span>
+                </h1>
 
-            <h1 class="text-white text-2xl mb-6">
-                you - <span id="playerName"><%= playerName %></span>
-            </h1>
+                <!-- Chessboard -->
+                <div class="chessboard w-96 h-96 bg-red-400 mx-auto mb-6"></div>
 
-            <!-- Chessboard -->
-            <div class="chessboard w-96 h-96 bg-red-400 mx-auto mb-6"></div>
-
-            <!-- Buttons Container -->
-            <div class="flex justify-center space-x-4 mb-6">
-                <button id="play-button" class="btn">Play</button>
-                <button id="invite-button" class="btn">Invite a Friend</button>
-                <button id="spectator-button" class="btn">Join as Spectator</button>
-                <button id="challenge-button" class="btn">Challenge Him</button>
+                <!-- Buttons Container -->
+                <div class="flex justify-center space-x-4 mb-6">
+                    <button id="play-button" class="btn">Play</button>
+                    <button id="invite-button" class="btn">Invite a Friend</button>
+                    <button id="spectator-button" class="btn">Join as Spectator</button>
+                    <button id="challenge-button" class="btn">Challenge Him</button>
+                </div>
             </div>
 
-            <!-- Spectators List -->
-            <div class="text-white">
-                <h3>Spectators:</h3>
-                <ul id="spectatorsList"></ul>
+            <!-- Message Box -->
+            <div id="messageBox" class="message-box border rounded-lg p-4 bg-gray-800 text-white overflow-y-auto">
+                <!-- Messages will be appended here -->
             </div>
-
-            <!-- Challenge Popup (Initially hidden) -->
-            <div id="challenge-popup">
-                <p>Player challenged you! Do you accept?</p>
-                <button id="accept-challenge" class="btn">Accept</button>
-                <button id="reject-challenge" class="btn">Reject</button>
-            </div>
+        </div>
+        <div id="notification">Link is copied!</div>
+        <div id="noBlackPlayerPopup">No Black Player Available</div>
+        <div id="challenge-popup" style="display: none;">
+            <p id="challengeMessage"></p>
+            <button id="accept-challenge" class="btn">Accept</button>
+            <button id="reject-challenge" class="btn">Reject</button>
         </div>
     </div>
 

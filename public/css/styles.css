@@ -133,17 +133,114 @@ button:disabled {
 /* Popup styling for challenges */
 #challenge-popup {
     display: none; /* Hidden by default */
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #111827; /* Dark background for popup */
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* Box shadow for effect */
+    background-color: #333; /* Dark background */
+    color: white; /* White text by default */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    z-index: 1000;
+    width: 300px; /* Adjust width */
 }
 
-/* Button inside popup */
+#challenge-popup p {
+    color: #F59E0B; /* Yellow text color for challenge message */
+    font-size: 18px; /* Larger font for better visibility */
+    font-weight: bold; /* Make the text bold */
+    margin-bottom: 20px; /* Add space between the message and buttons */
+}
+
+/* Button styles */
 #challenge-popup button {
-    margin-right: 0.5rem;
+    padding: 10px 15px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.message-box {
+    width: 300px;
+    height: 400px;
+    background-color: #1e1e1e;
+    padding: 15px;
+    border-radius: 10px;
+    overflow-y: auto;
+}
+
+.message {
+    padding: 5px;
+    margin-bottom: 4px;
+    background-color: #333;
+    border-radius: 5px;
+    word-wrap: break-word; /* Ensure long messages don't overflow */
+}
+
+/* Centering the chessboard and message box horizontally */
+.flex {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align the chat and chessboard at the top */
+}
+
+.space-x-10 {
+    gap: 2.5rem; /* Add spacing between chessboard and chatbox */
+}
+.move-history-box {
+    width: 150px;
+    height: 400px;
+    background-color: #1e1e1e;
+    padding: 10px;
+    border-radius: 10px;
+    overflow-y: auto;
+}
+
+.move-history-box h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.move-history-box ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.move-history-box ul li {
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+    font-size: 14px;
+    color: #fff;
+    word-wrap: break-word;
+}
+
+#notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50; /* Green background */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: none; /* Hidden by default */
+    z-index: 1000; /* Ensure it's above other elements */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Shadow effect */
+}
+
+#noBlackPlayerPopup {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #e3342f; /* Red background */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add a shadow */
 }
