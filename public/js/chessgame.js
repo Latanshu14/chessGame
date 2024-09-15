@@ -9,6 +9,7 @@ const spectatorButton = document.querySelector("#spectator-button");
 const challengePopup = document.querySelector("#challenge-popup");
 const acceptButton = document.querySelector("#accept-challenge");
 const rejectButton = document.querySelector("#reject-challenge");
+const sendButton = document.getElementById("sendMessageButton")
 
 let draggedPiece = null;
 let sourceSquare = null;
@@ -17,8 +18,16 @@ let gameStarted = false;
 let currentChallengerId = null;
 let currentChallengerName = null;
 
+sendButton.addEventListener("click", function () {
+    const chatInput = document.getElementById("chatInput");
+    const message = chatInput.value.trim();
+    if (message !== "") {
+        socket.emit("chatMessage", { gameId: gameId, message: message, playerName: playerName });
+        chatInput.value = "";
+    }
+});
 inviteButton.addEventListener("click", () => {
-    const gameIdText = document.getElementById('gameIdText').textContent;
+    const gameIdText = document.getElementById('gameIdText').value;
     navigator.clipboard.writeText(gameIdText).then(() => {
         showNotification("Link is copied!");
     }).catch(err => {
@@ -29,16 +38,15 @@ playButton.addEventListener("click", () => {
     socket.emit("startGame", gameId);
 });
 spectatorButton.addEventListener("click", () => {
-    const playerName = document.getElementById('playerName').textContent;
     console.log(playerName);
     playerRole = "spectator";
     socket.emit("joinAsSpectator", gameId, playerName);
     updateUI();
 });
 challengeButton.addEventListener("click", () => {
-    const playerName = document.getElementById('playerName').textContent;
     console.log(socket.id, " is challenging to white in ", gameId);
-    socket.emit("challengeWhitePlayer", gameId, playerName);
+    socket.emit("challengeWhitePlayer", gameId, socket.id, playerName);
+    showNotification("You challenged!");
 });
 acceptButton.addEventListener("click", () => {
     if (currentChallengerId && currentChallengerName) {
@@ -49,7 +57,7 @@ acceptButton.addEventListener("click", () => {
 });
 rejectButton.addEventListener("click", () => {
     if (currentChallengerId) {
-        socket.emit("rejectChallenge", currentChallengerId);
+        socket.emit("rejectChallenge", gameId, currentChallengerId);
         console.log("Challenge rejected.");
     }
     hideChallengePopup();
@@ -189,9 +197,26 @@ const updateMoveHistory = (move) => {
         document.getElementById('moveHistoryBox').scrollTop = moveHistoryList.scrollHeight;
     }
 }
+const showRejectedChallengePopup = () => {
+    const rejectedPopup = document.getElementById('rejected-challenge-popup');
+    rejectedPopup.style.display = 'block';
+    setTimeout(() => {
+        rejectedPopup.style.display = 'none';
+    }, 1000);
+};
 socket.on("playerRole", function (role) {
     playerRole = role;
     console.log(playerRole, gameStarted);
+    if (role === 'b') {
+        document.getElementById('blackPlayerContainer').style.order = 3;
+        document.getElementById('chessboardContainer').style.order = 2;
+        document.getElementById('whitePlayerContainer').style.order = 1;
+    }
+    else {
+        document.getElementById('blackPlayerContainer').style.order = 1;
+        document.getElementById('chessboardContainer').style.order = 2;
+        document.getElementById('whitePlayerContainer').style.order = 3;
+    }
     updateUI();
     renderBoard();
 });
@@ -222,6 +247,7 @@ socket.on("challengeRequest", function (challengerId, challengerName) {
     showChallengePopup(challengerName);
 });
 socket.on("challengeRejected", function () {
+    showRejectedChallengePopup();
     if (playerRole === "b") {
         renderBoard();
     }
@@ -240,13 +266,6 @@ socket.on('playerNames', (whiteName, blackName) => {
     document.getElementById('blackPlayerName').textContent = blackName ? blackName : 'Waiting for player...';
 });
 
-socket.on('playerJoined', (message) => {
-    addMessageToBox(message);
-});
-
-socket.on('spectatorJoined', (message) => {
-    addMessageToBox(message);
-});
 socket.on('moveHistory', (history) => {
     if (playerRole !== null) {
         history.forEach(move => {
@@ -256,4 +275,13 @@ socket.on('moveHistory', (history) => {
         renderBoard();
     }
 });
-// renderBoard();
+socket.on("chatMessage", function (messageData) {
+    if (playerRole !== null) {
+        const messagesDiv = document.getElementById("messages");
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+        messageElement.innerHTML = `<strong>${messageData.playerName}:</strong> ${messageData.message}`;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+});

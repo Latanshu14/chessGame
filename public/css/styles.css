@@ -5,6 +5,8 @@
     width: 400px;
     height: 400px;
     transform: rotate(0deg);
+    border: 4px solid #1e1e1e; /* Add border to chessboard for better visibility */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Subtle shadow to elevate chessboard */
 }
 
 .piece.white {
@@ -123,6 +125,19 @@
     background-color: #dc2626;  /* Darker red on hover */
 }
 
+#rejected-challenge-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #e3342f; /* Red background for rejection */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: none; /* Hidden by default */
+    z-index: 1000; /* Ensure it's above other elements */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add a shadow */
+}
+
 /* Disable buttons once the game starts */
 button:disabled {
     background-color: #6b7280;  /* Gray background when disabled */
@@ -144,7 +159,7 @@ button:disabled {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     text-align: center;
     z-index: 1000;
-    width: 300px; /* Adjust width */
+    width: 350px; /* Adjust width for better readability */
 }
 
 #challenge-popup p {
@@ -153,24 +168,20 @@ button:disabled {
     font-weight: bold; /* Make the text bold */
     margin-bottom: 20px; /* Add space between the message and buttons */
 }
-
-/* Button styles */
-#challenge-popup button {
-    padding: 10px 15px;
-    margin-right: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
 .message-box {
     width: 300px;
     height: 400px;
     background-color: #1e1e1e;
     padding: 15px;
     border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+#messages {
+    flex: 1;
     overflow-y: auto;
+    padding-right: 10px; /* Add padding for better scrolling experience */
 }
 
 .message {
@@ -181,6 +192,27 @@ button:disabled {
     word-wrap: break-word; /* Ensure long messages don't overflow */
 }
 
+/* Chat input and button */
+#chatInput {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+#sendMessageButton {
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Ensuring the chat input stays static at the bottom */
+.message-box .flex {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
 /* Centering the chessboard and message box horizontally */
 .flex {
     display: flex;
@@ -188,9 +220,21 @@ button:disabled {
     align-items: flex-start; /* Align the chat and chessboard at the top */
 }
 
+.text-white {
+    color: white;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
 .space-x-10 {
     gap: 2.5rem; /* Add spacing between chessboard and chatbox */
 }
+
+/* Move history box styling */
 .move-history-box {
     width: 150px;
     height: 400px;
@@ -198,6 +242,7 @@ button:disabled {
     padding: 10px;
     border-radius: 10px;
     overflow-y: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); /* Add shadow for elevation */
 }
 
 .move-history-box h3 {
@@ -219,6 +264,7 @@ button:disabled {
     word-wrap: break-word;
 }
 
+/* Notification styling */
 #notification {
     position: fixed;
     top: 20px;
@@ -226,12 +272,16 @@ button:disabled {
     background-color: #4CAF50; /* Green background */
     color: white;
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     display: none; /* Hidden by default */
     z-index: 1000; /* Ensure it's above other elements */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Shadow effect */
+    max-width: 300px; /* Limit the width */
+    width: fit-content; /* Fit the width of the text */
+    white-space: nowrap; /* Prevent text from wrapping */
 }
 
+/* No Black Player Popup */
 #noBlackPlayerPopup {
     display: none; /* Hidden by default */
     position: fixed;
@@ -240,7 +290,21 @@ button:disabled {
     background-color: #e3342f; /* Red background */
     color: white;
     padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
+    border-radius: 8px;
+    z-index: 1000; /* Make sure it's above other content */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Add a shadow */
+    max-width: 300px; /* Limit the width */
+    width: fit-content; /* Fit the width of the text */
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+
+/* Centering player names */
+#blackPlayerContainer, #whitePlayerContainer {
+    text-align: center;
+}
+
+/* Improved chat notification shadow */
+#notification, #noBlackPlayerPopup {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Stronger shadow for visibility */
 }

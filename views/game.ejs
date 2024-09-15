@@ -3,55 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Game - <%= gameId %></title>
+    <title>Chess Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
-        <!-- Moves history section on the left -->
-        <div id="moveHistoryBox" class="move-history-box border rounded-lg p-4 bg-gray-800 text-white overflow-y-auto mr-10">
-            <h3>Move History</h3>
-            <ul id="moveHistoryList">
+    <div class="w-full h-screen flex justify-between bg-zinc-900 p-8 space-x-6">
+        
+        <!-- Move History Section -->
+        <div id="moveHistoryBox" class="move-history-box border rounded-lg p-4 bg-gray-800 text-white overflow-y-auto shadow-lg w-56 h-full flex-shrink-0">
+            <h3 class="text-xl font-bold mb-4">Move History</h3>
+            <ul id="moveHistoryList" class="space-y-2">
                 <!-- Moves will be appended here -->
             </ul>
         </div>
 
-        <div class="flex justify-center space-x-10">
-            <div class="text-center">
-                <h1 class="text-white text-2xl mb-6">
-                    Game ID: <span id="gameIdText"><%= gameId %></span>
-                </h1>
-                <h1 class="text-white text-2xl mb-6">
-                    Chess Game: White - <span id="whitePlayerName"></span>, Black - <span id="blackPlayerName"></span>
-                </h1>
-                <h1 class="text-white text-2xl mb-6">
-                    You - <span id="playerName"><%= playerName %></span>
-                </h1>
+        <!-- Chessboard and Player Information -->
+        <div class="flex flex-col items-center space-y-6 flex-grow">
 
-                <!-- Chessboard -->
-                <div class="chessboard w-96 h-96 bg-red-400 mx-auto mb-6"></div>
+            <!-- Player's Info -->
+            <h1 class="text-white text-2xl">
+                You - <span id="playerName"><%= playerName %></span>
+            </h1>
 
-                <!-- Buttons Container -->
-                <div class="flex justify-center space-x-4 mb-6">
-                    <button id="play-button" class="btn">Play</button>
-                    <button id="invite-button" class="btn">Invite a Friend</button>
-                    <button id="spectator-button" class="btn">Join as Spectator</button>
-                    <button id="challenge-button" class="btn">Challenge Him</button>
-                </div>
+            <!-- Black Player Name at the Top -->
+            <div id="blackPlayerContainer" class="text-white text-2xl">
+                <h1 class="text-center">Black Player: <span id="blackPlayerName">Waiting for player...</span></h1>
             </div>
 
-            <!-- Message Box -->
-            <div id="messageBox" class="message-box border rounded-lg p-4 bg-gray-800 text-white overflow-y-auto">
-                <!-- Messages will be appended here -->
+            <!-- Chessboard -->
+            <div id="chessboardContainer" class="chessboard w-96 h-96 bg-gray-700 rounded-lg shadow-lg mx-auto"></div>
+
+            <!-- White Player Name at the Bottom -->
+            <div id="whitePlayerContainer" class="text-white text-2xl">
+                <h1 class="text-center">White Player: <span id="whitePlayerName">Waiting for player...</span></h1>
+            </div>
+
+            <!-- Buttons Section -->
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="play-button" class="btn bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md">Play</button>
+                <button id="invite-button" class="btn bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg shadow-md">Invite a Friend</button>
+                <button id="spectator-button" class="btn bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg shadow-md">Join as Spectator</button>
+                <button id="challenge-button" class="btn bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-lg shadow-md">Challenge Him</button>
+            </div>
+
+            <!-- Hidden Game ID Field -->
+            <input type="hidden" id="gameIdText" value="<%= gameId %>">
+        </div>
+
+        <!-- Message Box Section -->
+        <div id="messageBox" class="message-box border rounded-lg p-4 bg-gray-800 text-white flex flex-col justify-between shadow-lg w-72 h-full flex-shrink-0">
+            <h3 class="text-xl font-bold mb-4">Chat</h3>
+            <!-- Messages will be displayed here -->
+            <div id="messages" class="flex-1 overflow-y-auto mb-4 space-y-2">
+                <!-- Chat messages go here -->
+            </div>
+
+            <!-- Chat input and button at the bottom -->
+            <div class="flex items-center">
+                <input type="text" id="chatInput" placeholder="Type a message..." class="w-full p-2 rounded-md text-black" />
+                <button id="sendMessageButton" class="ml-2 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md">Send</button>
             </div>
         </div>
-        <div id="notification">Link is copied!</div>
-        <div id="noBlackPlayerPopup">No Black Player Available</div>
-        <div id="challenge-popup" style="display: none;">
-            <p id="challengeMessage"></p>
-            <button id="accept-challenge" class="btn">Accept</button>
-            <button id="reject-challenge" class="btn">Reject</button>
+
+    </div>
+
+    <!-- Hidden Components -->
+    <div id="notification" class="hidden fixed bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg">
+        Link is copied!
+    </div>
+
+    <div id="noBlackPlayerPopup" class="hidden fixed bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg">
+        No Black Player Available
+    </div>
+
+    <div id="rejected-challenge-popup" class="hidden fixed bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg">
+        White player rejected your challenge request.
+    </div>
+    <div id="challenge-popup" class="hidden fixed bg-black bg-opacity-50 flex justify-center items-center">
+        <div class="bg-gray-800 text-white p-6 rounded-lg shadow-lg text-center">
+            <p id="challengeMessage" class="text-lg mb-4"></p>
+            <button id="accept-challenge" class="btn bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg">Accept</button>
+            <button id="reject-challenge" class="btn bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg ml-2">Reject</button>
         </div>
     </div>
 

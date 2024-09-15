@@ -10,6 +10,8 @@ const server = http.createServer(app);
 const io = socket(server);
 
 let players = {};
+let challengeLocks = {};
+let challengeQueues = {};
 
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
@@ -37,6 +39,7 @@ app.get("/join-game", (req, res) => {
     }
     res.redirect(`/game/${gameId}?playerName=${playerName}`);
 });
+
 app.get("/game/:gameId", (req, res) => {
     const gameId = req.params.gameId;
     const playerName = req.query.playerName;
@@ -45,6 +48,60 @@ app.get("/game/:gameId", (req, res) => {
     }
     res.render("game", { gameId: gameId , playerName: playerName});
 });
+
+const isPlayerAvailableForChallenge = (gameId) => {
+    if (!challengeLocks[gameId]) {
+        challengeLocks[gameId] = { isLocked: false };
+    }
+    return !challengeLocks[gameId].isLocked;
+};
+const setChallengeLock = (gameId) => {
+    if (!challengeLocks[gameId]) {
+        challengeLocks[gameId] = { isLocked: false };
+    }
+
+    return new Promise((resolve) => {
+        const tryAcquire = () => {
+            if (!challengeLocks[gameId].isLocked) {
+                challengeLocks[gameId].isLocked = true;
+                resolve();
+            } else {
+                setTimeout(tryAcquire, 100);
+            }
+        };
+        tryAcquire();
+    });
+};
+const releaseChallengeLock = (gameId, accepted = false) => {
+    challengeLocks[gameId].isLocked = false;
+
+    if (accepted) {
+        rejectAllQueuedChallenges(gameId);
+    } else {
+        processQueuedChallenges(gameId);
+    }
+};
+const queueChallenge = (gameId, challengerId, challengerName) => {
+    if (!challengeQueues[gameId]) {
+        challengeQueues[gameId] = [];
+    }
+    challengeQueues[gameId].push({ challengerId, challengerName });
+};
+const rejectAllQueuedChallenges = (gameId) => {
+    if (challengeQueues[gameId]) {
+        while (challengeQueues[gameId].length > 0) {
+            const challenge = challengeQueues[gameId].shift();
+            io.to(challenge.challengerId).emit("challengeRejected");
+        }
+    }
+};
+const processQueuedChallenges = (gameId) => {
+    if (challengeQueues[gameId] && challengeQueues[gameId].length > 0) {
+        const nextChallenge = challengeQueues[gameId].shift();
+        io.to(players[gameId].white.id).emit("challengeRequest", nextChallenge.challengerId, nextChallenge.challengerName);
+        setChallengeLock(gameId);
+    }
+};
 
 io.on("connection", (uniqueSocket) => {
     
@@ -60,7 +117,7 @@ io.on("connection", (uniqueSocket) => {
             players[gameId].white.id = uniqueSocket.id;
             players[gameId].white.name = playerName;
             uniqueSocket.emit("playerRole", "w");
-            io.to(gameId).emit('playerJoined', `${playerName} has joined as white!`);
+            io.to(gameId).emit("chatMessage", { playerName: playerName, message: `${playerName} has joined as white.` });
         } else if (!players[gameId].black.id) {
             uniqueSocket.emit("playerRole", null);
         } else {
@@ -69,33 +126,43 @@ io.on("connection", (uniqueSocket) => {
             uniqueSocket.emit("playerRole", "spectator");
             uniqueSocket.emit("boardState", chess.fen());
             uniqueSocket.emit("gameStarted");
-            io.to(gameId).emit('spectatorJoined', `${playerName} has joined as a spectator`);
+            io.to(gameId).emit("chatMessage", { playerName: playerName, message: `${playerName} has joined as a spectator.` });
         }
         io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
         uniqueSocket.emit('moveHistory', players[gameId].moveHistory);
     });
 
-    uniqueSocket.on("challengeWhitePlayer", (gameId, playerName) => {
-        if (players[gameId].white.id) {
-            console.log("challenge recievec from ", uniqueSocket.id);
-            io.to(players[gameId].white.id).emit("challengeRequest", uniqueSocket.id, playerName);
-        }
+    uniqueSocket.on("chatMessage", (data) => {
+        const { gameId, message, playerName } = data;
+        io.in(gameId).emit("chatMessage", { playerName, message });
     });
 
+    uniqueSocket.on("challengeWhitePlayer", async (gameId, challengerId, challengerName) => {
+        if (isPlayerAvailableForChallenge(gameId)) {
+            console.log(`Challenge received from ${challengerName}`);
+            io.to(players[gameId].white.id).emit("challengeRequest", challengerId, challengerName);
+            setChallengeLock(gameId);
+        } else {
+            console.log(`Challenge queued from ${challengerName}`);
+            queueChallenge(gameId, challengerId, challengerName); 
+        }
+    });
     uniqueSocket.on("acceptChallenge", (gameId, challengerId, challengerName) => {
         if (players[gameId].white.id && players[gameId].black.id === null) {
-            console.log("Black joined: ", challengerId, challengerName);
-            players[gameId].black.id = challengerId;
-            players[gameId].black.name = challengerName;
+            console.log(`Black joined: ${challengerId}`);
+            players[gameId].black = { id: challengerId, name: challengerName };
             io.to(challengerId).emit("playerRole", "b");
             io.to(challengerId).emit("challengeAccepted");
             io.in(gameId).emit("playerNames", players[gameId].white.name, players[gameId].black.name);
-            io.to(gameId).emit('playerJoined', `${challengerName} has joined as black!`);
+            io.to(gameId).emit("chatMessage", { playerName: challengerName, message: `${challengerName} has joined as black.` });
         }
+
+        releaseChallengeLock(gameId, true);
     });
 
-    uniqueSocket.on("rejectChallenge", (challengerId) => {
+    uniqueSocket.on("rejectChallenge", (gameId, challengerId) => {
         io.to(challengerId).emit("challengeRejected");
+        releaseChallengeLock(gameId, false);  
     });
 
     uniqueSocket.on("joinAsSpectator", (gameId, playerName) => {
@@ -105,7 +172,7 @@ io.on("connection", (uniqueSocket) => {
         uniqueSocket.emit("playerRole", "spectator");
         uniqueSocket.emit("boardState", chess.fen());
         uniqueSocket.emit('moveHistory', players[gameId].moveHistory);
-        io.to(gameId).emit('spectatorJoined', `${playerName} has joined as a spectator`);
+        io.to(gameId).emit("chatMessage", { playerName: playerName, message: `${playerName} has joined as a spectator.` });
     });
 
     uniqueSocket.on("startGame", (gameId) => {
